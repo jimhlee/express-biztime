@@ -41,7 +41,7 @@ router.get('/:code', async function (req, res) {
 router.post('/', async function (req, res) {
   if (!req.body) throw new BadRequestError();
 
-  if (!req.name || !req.description) throw new BadRequestError();
+  if (!req.body.name || !req.body.description) throw new BadRequestError();
   if (Object.keys(req.body).length === 0) throw new BadRequestError();
 
   const { code, name, description } = req.body;
