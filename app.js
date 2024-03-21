@@ -4,14 +4,15 @@ const express = require("express");
 const { NotFoundError } = require("./expressError");
 
 const companiesRoutes = require('./routes/companies');
-const invoicesRoutes = require('./routes/invoices');
+// const invoicesRoutes = require('./routes/invoices');
 
 const app = express();
 
 // Does this line parse json?
 app.use(express.json());
-app.use('/companies'.companiesRoutes);
-app.use('/invoices'.invoicesRoutes);
+
+app.use('/companies', companiesRoutes);
+// app.use('/invoices', invoicesRoutes);
 
 
 /** 404 handler: matches unmatched routes; raises NotFoundError. */
