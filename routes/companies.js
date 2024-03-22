@@ -1,7 +1,7 @@
 "use strict";
 
 const express = require("express");
-const { NotFoundError, BadRequestError } = require("../expressError");
+const { NotFoundError, BadRequestError, DuplicateError } = require("../expressError");
 const db = require("../db");
 
 const router = new express.Router();
@@ -18,7 +18,8 @@ router.get('/', async function (req, res) {
 
 });
 
-/** GET / => {company: {code, name, description}, ...} */
+/** GET Get specific company and its invoices
+ * / => {company: {code, name, description, invoices: [id,...]}, ...} */
 router.get('/:code', async function (req, res) {
 
   const result = await db.query(
@@ -28,14 +29,24 @@ router.get('/:code', async function (req, res) {
     [req.params.code]
   );
   const company = result.rows[0];
-
   if (!company) throw new NotFoundError();
+
+  const invoiceResult = await db.query(
+    `SELECT id
+     FROM invoices
+     WHERE comp_code = $1`,
+    [company.code]
+  );
+
+  const invoices = invoiceResult.rows.map(inv => inv.id);
+  company.invoices = invoices;
 
   return res.json({ company });
 
 });
 
-/** POST / => Receives {code, name, description}
+/** POST /  Adds a company
+ * => Receives {code, name, description}
  * Returns {company: {code, name, description}}
  */
 router.post('/', async function (req, res) {
@@ -44,7 +55,18 @@ router.post('/', async function (req, res) {
   if (!req.body.name || !req.body.description) throw new BadRequestError();
   if (Object.keys(req.body).length === 0) throw new BadRequestError();
 
+
   const { code, name, description } = req.body;
+  const checkForCompany = await db.query(
+    `SELECT code
+    FROM companies
+    WHERE code = $1`,
+    [code]
+  );
+  if (checkForCompany) {
+    throw new DuplicateError();
+  }
+
   const result = await db.query(
     `INSERT INTO companies
     (code, name, description)
@@ -62,7 +84,7 @@ router.post('/', async function (req, res) {
 router.put('/:code', async function (req, res) {
 
   if (!Object.keys(req.body).length) throw new BadRequestError();
-  if (!req.name || !req.description) throw new BadRequestError();
+  if (!req.body.name || !req.body.description) throw new BadRequestError();
 
   const { name, description } = req.body;
 

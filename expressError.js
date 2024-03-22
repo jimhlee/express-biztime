@@ -22,6 +22,14 @@ class NotFoundError extends ExpressError {
   }
 }
 
+/** 407 DUPLICATE error. */
+
+class DuplicateError extends ExpressError {
+  constructor(message = "Already exists") {
+    super(message, 407);
+  }
+}
+
 /** 401 UNAUTHORIZED error. */
 
 class UnauthorizedError extends ExpressError {
@@ -52,4 +60,5 @@ module.exports = {
   UnauthorizedError,
   BadRequestError,
   ForbiddenError,
+  DuplicateError
 };

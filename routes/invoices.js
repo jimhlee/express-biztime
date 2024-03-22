@@ -1,16 +1,12 @@
 "use strict";
 
 const express = require("express");
-const { NotFoundError, BadRequestError } = require("../expressError");
+const { NotFoundError, BadRequestError, DuplicateError } = require("../expressError");
 const db = require("../db");
 const { checkBodyEmpty } = require("./middleware");
 const router = new express.Router();
 
 
-
-
-
-// invoices (comp_code, amt, paid, paid_date)
 /** GET / Gets all invoices
  * / =>  {invoices: [{id, comp_code}, ...]} */
 router.get('/', async function (req, res) {
@@ -23,16 +19,17 @@ router.get('/', async function (req, res) {
   return res.json({ invoices });
 });
 
-/** GET / Gets a specific invoices
+/** GET / Gets a specific invoice
  * / invoice.id =>  {invoice: {id, amt, paid, add_date, paid_date,
  * company: {code, name, description}} */
+// TODO: refactor to join query
 router.get('/:id', async function (req, res) {
   const invoiceResult = await db.query(
     `SELECT id, comp_code, amt, paid, add_date, paid_date
      FROM invoices
      WHERE id = $1`,
     [req.params.id]);
-
+    // single query ensures referential integrity, multiple queries = more chance of integrity issues
   const invoice = invoiceResult.rows[0];
   if (!invoice) throw new NotFoundError('Invoice not found');
   const comp_code = invoice.comp_code;
@@ -46,7 +43,7 @@ router.get('/:id', async function (req, res) {
   );
 
   const company = companyResult.rows[0];
-  // if (!company) throw new NotFoundError('Comapny not found);
+  if (!company) throw new NotFoundError('Company not found');
 
   return res.json({ 'invoice': invoice, 'company': company });
 });
@@ -110,11 +107,11 @@ router.put('/:id',
     return res.json({ invoice });
   });
 
+
 /** DELETE / Deletes Invoice
  * Receives {id}
  * Returns {status: "deleted"} or 404
  */
-
 router.delete('/:id', async function (req, res) {
   const result = await db.query(
     `DELETE FROM invoices
