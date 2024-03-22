@@ -22,30 +22,39 @@ router.get('/', async function (req, res) {
 /** GET / Gets a specific invoice
  * / invoice.id =>  {invoice: {id, amt, paid, add_date, paid_date,
  * company: {code, name, description}} */
-// TODO: refactor to join query
+
 router.get('/:id', async function (req, res) {
-  const invoiceResult = await db.query(
-    `SELECT id, comp_code, amt, paid, add_date, paid_date
-     FROM invoices
-     WHERE id = $1`,
-    [req.params.id]);
-    // single query ensures referential integrity, multiple queries = more chance of integrity issues
-  const invoice = invoiceResult.rows[0];
-  if (!invoice) throw new NotFoundError('Invoice not found');
-  const comp_code = invoice.comp_code;
-  delete invoice.comp_code;
+  // const invoiceResult = await db.query(
+  //   `SELECT id, comp_code, amt, paid, add_date, paid_date
+  //    FROM invoices
+  //    WHERE id = $1`,
+  //   [req.params.id]);
 
-  const companyResult = await db.query(
-    `SELECT code, name, description
-     FROM companies
-     WHERE code = $1`,
-    [comp_code]
+  // const invoice = invoiceResult.rows[0];
+  // if (!invoice) throw new NotFoundError('Invoice not found');
+  // const comp_code = invoice.comp_code;
+  // delete invoice.comp_code;
+
+  // const companyResult = await db.query(
+  //   `SELECT code, name, description
+  //    FROM companies
+  //    WHERE code = $1`,
+  //   [comp_code]
+  // );
+  const result = await db.query(
+    `SELECT i.id, i.amt, i.paid, i.add_date, i.paid_date, c.code, c.name, c.description
+    FROM invoices as i
+    JOIN companies as c ON c.code = i.comp_code
+    WHERE i.id = $1`,
+    [req.params.id]
   );
+  const invoice = result.rows[0];
+  const { id, amt, paid, add_date, paid_date, code, name, description } = invoice;
 
-  const company = companyResult.rows[0];
-  if (!company) throw new NotFoundError('Company not found');
 
-  return res.json({ 'invoice': invoice, 'company': company });
+  if (!invoice) throw new NotFoundError('Invoice not found');
+
+  return res.json({ 'invoice': { id, amt, paid, add_date, paid_date }, 'company': { code, name, description } });
 });
 
 /** POST / Adds an invoice
